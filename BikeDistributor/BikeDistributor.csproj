@@ -39,10 +39,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseDiscountHandler.cs" />
+    <Compile Include="DefaultFormatter.cs" />
+    <Compile Include="HtmlFormatter.cs" />
+    <Compile Include="IDiscountHandler.cs" />
+    <Compile Include="IReceiptFormatter.cs" />
     <Compile Include="Order.cs" />
     <Compile Include="Bike.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Line.cs" />
+    <Compile Include="QuantityPriceDiscountHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

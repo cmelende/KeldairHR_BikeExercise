@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -9,10 +8,12 @@ namespace BikeDistributor
     {
         private const double TaxRate = .0725d;
         private readonly IList<Line> _lines = new List<Line>();
+        private IDiscountHandler _discountHandler;
 
-        public Order(string company)
+        public Order(string company, IDiscountHandler discountHandler)
         {
             Company = company;
+            _discountHandler = discountHandler;
         }
 
         public string Company { get; private set; }
@@ -22,88 +23,55 @@ namespace BikeDistributor
             _lines.Add(line);
         }
 
-        public string Receipt()
+        public string Receipt(IReceiptFormatter formatter = null)
         {
-            var totalAmount = 0d;
-            var result = new StringBuilder(string.Format("Order Receipt for {0}{1}", Company, Environment.NewLine));
-            foreach (var line in _lines)
+            if (formatter == null)
             {
-                var thisAmount = 0d;
-                switch (line.Bike.Price)
-                {
-                    case Bike.OneThousand:
-                        if (line.Quantity >= 20)
-                            //discount modifier
-                            thisAmount += line.Quantity * line.Bike.Price * .9d;
-                        else
-                            thisAmount += line.Quantity * line.Bike.Price;
-                        break;
-                    case Bike.TwoThousand:
-                        if (line.Quantity >= 10)
-                            thisAmount += line.Quantity * line.Bike.Price * .8d;
-                        else
-                            thisAmount += line.Quantity * line.Bike.Price;
-                        break;
-                    case Bike.FiveThousand:
-                        if (line.Quantity >= 5)
-                            thisAmount += line.Quantity * line.Bike.Price * .8d;
-                        else
-                            thisAmount += line.Quantity * line.Bike.Price;
-                        break;
-                }
-                result.AppendLine(string.Format("\t{0} x {1} {2} = {3}", line.Quantity, line.Bike.Brand, line.Bike.Model, thisAmount.ToString("C")));
-                totalAmount += thisAmount;
+                formatter = new DefaultFormatter();
             }
-            result.AppendLine(string.Format("Sub-Total: {0}", totalAmount.ToString("C")));
-            var tax = totalAmount * TaxRate;
-            result.AppendLine(string.Format("Tax: {0}", tax.ToString("C")));
-            result.Append(string.Format("Total: {0}", (totalAmount + tax).ToString("C")));
-            return result.ToString();
-        }
-
-        public string HtmlReceipt()
-        {
+            
             var totalAmount = 0d;
-            var result = new StringBuilder(string.Format("<html><body><h1>Order Receipt for {0}</h1>", Company));
+            var documentSb = new StringBuilder();
+            
+            var headerSb = new StringBuilder($"Order Receipt for {Company}");
+            formatter.FormatHeader(headerSb);
+            documentSb.Append(headerSb);
+            
+            var allLinesSb = new StringBuilder();
             if (_lines.Any())
             {
-                result.Append("<ul>");
-                foreach (var line in _lines)
+                
+                foreach (Line line in _lines)
                 {
-                    var thisAmount = 0d;
-                    switch (line.Bike.Price)
-                    {
-                        case Bike.OneThousand:
-                            if (line.Quantity >= 20)
-                                thisAmount += line.Quantity*line.Bike.Price*.9d;
-                            else
-                                thisAmount += line.Quantity*line.Bike.Price;
-                            break;
-                        case Bike.TwoThousand:
-                            if (line.Quantity >= 10)
-                                thisAmount += line.Quantity*line.Bike.Price*.8d;
-                            else
-                                thisAmount += line.Quantity*line.Bike.Price;
-                            break;
-                        case Bike.FiveThousand:
-                            if (line.Quantity >= 5)
-                                thisAmount += line.Quantity*line.Bike.Price*.8d;
-                            else
-                                thisAmount += line.Quantity*line.Bike.Price;
-                            break;
-                    }
-                    result.Append(string.Format("<li>{0} x {1} {2} = {3}</li>", line.Quantity, line.Bike.Brand, line.Bike.Model, thisAmount.ToString("C")));
+                    double thisAmount = line.GetChargeAmount() - _discountHandler.Handle(line);
+                    var lineSb = new StringBuilder($"{line.Quantity} x {line.Bike.Brand} {line.Bike.Model} = {thisAmount:C}");
+                    formatter.FormatLine(lineSb);
+                    allLinesSb.Append(lineSb);
+                    
                     totalAmount += thisAmount;
                 }
-                result.Append("</ul>");
-            }
-            result.Append(string.Format("<h3>Sub-Total: {0}</h3>", totalAmount.ToString("C")));
-            var tax = totalAmount * TaxRate;
-            result.Append(string.Format("<h3>Tax: {0}</h3>", tax.ToString("C")));
-            result.Append(string.Format("<h2>Total: {0}</h2>", (totalAmount + tax).ToString("C")));
-            result.Append("</body></html>");
-            return result.ToString();
-        }
 
+                formatter.FormatAllLines(allLinesSb);
+            }
+
+            documentSb.Append(allLinesSb);
+
+            var subTotalSb = new StringBuilder($"Sub-Total: {totalAmount:C}");
+            formatter.FormatSubTotal(subTotalSb);
+            documentSb.Append(subTotalSb);
+
+            double tax = totalAmount * TaxRate;
+            var taxSb = new StringBuilder($"Tax: {tax:C}");
+            formatter.FormatTax(taxSb);
+            documentSb.Append(taxSb);
+
+            var totalSb = new StringBuilder($"Total: {totalAmount + tax:C}");
+            formatter.FormatTotal(totalSb);
+            documentSb.Append(totalSb);
+
+            formatter.FormatDocument(documentSb);
+
+            return documentSb.ToString();
+        }
     }
 }

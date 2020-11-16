@@ -55,8 +55,11 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="DefaultFormatterTests.cs" />
+    <Compile Include="HmtlFormatterTests.cs" />
     <Compile Include="OrderTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QuantityPriceDiscountHandlerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BikeDistributor\BikeDistributor.csproj">

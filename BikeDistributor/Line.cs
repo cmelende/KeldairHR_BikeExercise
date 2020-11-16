@@ -10,5 +10,10 @@
 
         public Bike Bike { get; private set; }
         public int Quantity { get; private set; }
+
+        public double GetChargeAmount()
+        {
+            return Quantity * Bike.Price;
+        }
     }
 }
